@@ -5,6 +5,7 @@ import (
 	"project_pertama/model"
 	"project_pertama/repository"
 	"project_pertama/util"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,4 +51,45 @@ func (pc *personController) GetAll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, util.CreateResponse(true, persons, ""))
+}
+
+func (pc *personController) Update(ctx *gin.Context) {
+	reqId := ctx.Param("id")
+	id, err := strconv.Atoi(reqId)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, util.CreateResponse(false, nil, err.Error()))
+		return
+	}
+
+	var newPerson model.Person
+	errP := ctx.ShouldBindJSON(&newPerson)
+	if errP != nil {
+		ctx.JSON(http.StatusInternalServerError, util.CreateResponse(false, nil, errP.Error()))
+	}
+
+	updatedPerson, err := pc.personRepository.Update(id, newPerson)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, util.CreateResponse(false, nil, err.Error()))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, util.CreateResponse(true, updatedPerson, ""))
+}
+
+func (pc *personController) Delete(ctx *gin.Context) {
+	reqId := ctx.Param("id")
+	id, err := strconv.Atoi(reqId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, util.CreateResponse(false, nil, err.Error()))
+		return
+	}
+
+	deletedPerson, err := pc.personRepository.Delete(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, util.CreateResponse(false, nil, err.Error()))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, util.CreateResponse(true, deletedPerson, ""))
 }
