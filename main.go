@@ -3,6 +3,7 @@ package main
 import (
 	"project_pertama/controller"
 	"project_pertama/lib"
+	"project_pertama/middleware"
 	"project_pertama/model"
 	"project_pertama/repository"
 
@@ -39,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&model.Person{}, model.CreditCard{})
+	err = db.AutoMigrate(&model.Person{}, &model.CreditCard{}, &model.User{})
 	if err != nil {
 		panic(err)
 	}
@@ -47,12 +48,33 @@ func main() {
 	personRepository := repository.NewPersonRepository(db)
 	personController := controller.NewPersonController(personRepository)
 
+	userRepository := repository.NewUserRepository(db)
+	userController := controller.NewUserController(userRepository)
+
 	ginEngine := gin.Default()
 
-	ginEngine.GET("/person", personController.GetAll)
-	ginEngine.POST("/person", personController.Create)
+	// personGroup := ginEngine.Group("/person", gin.BasicAuth(gin.Accounts{
+	// 	"admin": "12345",
+	// 	"willy": "golang_mantap",
+	// }))
+
+	// personGroup.GET("/", personController.GetAll)
+	// personGroup.POST("/", personController.Create)
+
+	// ginEngine.Use(middleware.LogMiddleware)
+	// personGroup := ginEngine.Group("/person")
+	// personGroup.Use(middleware.LogMiddleware)
+	// personGroup.GET("/", personController.GetAll)
+	// personGroup.POST("/", personController.Create)
+
+	ginEngine.POST("/users/register", userController.Register)
+	ginEngine.POST("/users/login", userController.Login)
+
+	personGroup := ginEngine.Group("/person", middleware.AuthMiddleware, middleware.AdminMiddleware)
+	personGroup.GET("", personController.GetAll)
+	personGroup.POST("", personController.Create)
 	// ginEngine.PUT("/person/:id", personController.Update)
-	ginEngine.DELETE("/person/:id", personController.Delete)
+	personGroup.DELETE("/:id", personController.Delete)
 
 	ginEngine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
