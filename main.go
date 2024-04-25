@@ -40,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&model.Person{}, &model.CreditCard{}, &model.User{})
+	err = db.AutoMigrate(&model.Person{}, &model.CreditCard{}, &model.User{}, &model.Order{})
 	if err != nil {
 		panic(err)
 	}
@@ -50,6 +50,9 @@ func main() {
 
 	userRepository := repository.NewUserRepository(db)
 	userController := controller.NewUserController(userRepository)
+
+	orderRepository := repository.NewOrderRepository(db)
+	orderController := controller.NewOrderController(orderRepository)
 
 	ginEngine := gin.Default()
 
@@ -69,6 +72,11 @@ func main() {
 
 	ginEngine.POST("/users/register", userController.Register)
 	ginEngine.POST("/users/login", userController.Login)
+
+	orderGroup := ginEngine.Group("/orders", middleware.AuthMiddleware)
+	orderGroup.GET("", orderController.GetAll)
+	orderGroup.POST("", orderController.Create)
+	orderGroup.DELETE("/:id", orderController.Delete)
 
 	personGroup := ginEngine.Group("/person", middleware.AuthMiddleware, middleware.AdminMiddleware)
 	personGroup.GET("", personController.GetAll)
